@@ -1,18 +1,6 @@
-#include <iostream>
-#include <vector>
+#include <graph.h>
+
 using namespace std;
-
-struct node {
-    int edg;  // next edge index
-    int to;   // destination
-    int wgt;  // weight
-};
-
-struct Graph {
-    int n, m;
-    vector<int> head;
-    vector<node> edges;
-};
 
 Graph create_graph(int num_nodes, int num_edges) {
     Graph G;
@@ -26,8 +14,6 @@ Graph create_graph(int num_nodes, int num_edges) {
         G.edges.push_back({G.head[u], v, w});
         G.head[u] = cnt++;
     };
-
-    srand(time(nullptr));
 
     for (int i = 0; i < num_edges; i++) {
         int u = rand() % num_nodes;

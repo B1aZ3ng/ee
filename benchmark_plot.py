@@ -122,6 +122,68 @@ def plot_density_vs_time(data, nodes_list, out_dir, logscale=False):
         print(f"Saved: {path}")
         plt.close()
 
+
+def plot_all_combined(data, nodes_list, out_dir, logscale=False):
+    """One figure with all node counts as subplots side by side."""
+    valid = [n for n in nodes_list if data[n]]
+    if not valid:
+        return
+
+    ncols = min(len(valid), 2)
+    nrows = (len(valid) + ncols - 1) // ncols
+    scale_label = " (log scale)" if logscale else ""
+    fig, axes = plt.subplots(nrows, ncols,
+                             figsize=(7 * ncols, 5 * nrows),
+                             squeeze=False)
+    fig.suptitle(f"MST Runtime vs Graph Density{scale_label}",
+                 fontsize=15, fontweight="bold")
+
+    for idx, nodes in enumerate(valid):
+        ax = axes[idx // ncols][idx % ncols]
+        rows = data[nodes]
+        densities = [r[0] for r in rows]
+        times = {
+            "Kruskal": [r[2] for r in rows],
+            "Prim":    [r[3] for r in rows],
+            "Boruvka": [r[4] for r in rows],
+        }
+
+        for algo, ys in times.items():
+            s = ALGO_STYLE[algo]
+            ax.plot(densities, ys, label=algo,
+                    color=s["color"], marker=s["marker"],
+                    linestyle=s["linestyle"], linewidth=2, markersize=5)
+
+        if logscale:
+            ax.set_xscale("log")
+            ax.set_yscale("log")
+            ax.set_xticks(densities)
+            ax.xaxis.set_major_formatter(ticker.FuncFormatter(
+                lambda x, _: f"{x:.4g}"
+            ))
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
+        else:
+            ax.xaxis.set_major_formatter(ticker.FuncFormatter(
+                lambda x, _: f"{x:.2g}"
+            ))
+
+        ax.set_title(f"{nodes} nodes", fontsize=12)
+        ax.set_xlabel("Graph Density")
+        ax.set_ylabel("Avg Time (µs)")
+        ax.legend(fontsize=9)
+        ax.grid(True, linestyle="--", alpha=0.4)
+
+    # Hide any unused subplots
+    for idx in range(len(valid), nrows * ncols):
+        axes[idx // ncols][idx % ncols].set_visible(False)
+
+    plt.tight_layout()
+    suffix = "_log" if logscale else ""
+    path = os.path.join(out_dir, f"all_combined{suffix}.png")
+    plt.savefig(path, dpi=150)
+    print(f"Saved: {path}")
+    plt.close()
+
 # ── main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -168,8 +230,21 @@ def main():
             else:
                 print("FAILED")
 
-    print("\nGenerating plots...")
+    # ── Save raw data to CSV ──────────────────────────────────────────────────
+    import csv
+    csv_path = os.path.join(args.outdir, "raw_data.csv")
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["nodes", "actual_density", "edges", "kruskal_us", "prim_us", "boruvka_us"])
+        for nodes in args.nodes:
+            for row in data[nodes]:
+                writer.writerow([nodes] + list(row))
+    print(f"\nRaw data saved: {csv_path}")
+
+    # ── Generate plots ────────────────────────────────────────────────────────
+    print("Generating plots...")
     plot_density_vs_time(data, args.nodes, args.outdir, logscale=args.logscale)
+    plot_all_combined(data, args.nodes, args.outdir, logscale=args.logscale)
 
     print("\nDone! Plots saved to:", os.path.abspath(args.outdir))
 

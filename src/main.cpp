@@ -8,8 +8,8 @@
 
 using namespace std::chrono;
 
-static constexpr int GRAPHS = 50;  // independent graphs generated per density
-static constexpr int RUNS   = 5;   // times each algorithm is run per graph
+static constexpr int GRAPHS = 100;  // independent graphs generated per density
+static constexpr int RUNS   = 10;   // times each algorithm is run per graph
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
